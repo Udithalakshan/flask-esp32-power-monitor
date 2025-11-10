@@ -2,7 +2,7 @@
 
 A complete real-time power monitoring solution that bridges industrial power analyzers with modern web interfaces using ESP32, Flask, and Modbus RTU protocol.
 
-![System Architecture]([https://www.linkedin.com/posts/uditha-lakshan-520411278_powermonitoring-energydashboard-realtimeanalytics-activity-7390069767358955521-2VHl?utm_source=share&utm_medium=member_desktop&rcm=ACoAAEOxSqgBC7VCB9X1fRT96mgqiVseo-0vUdU])
+![Dashboard Screenshot](docs/images/dashboard.png)
 *Real-time monitoring of three-phase electrical parameters with interactive charts*
 
 ## 🌟 Features
@@ -141,7 +141,7 @@ Navigate to `http://127.0.0.1:5000/auth/register` and create your account.
 ### 7. Configure ESP32
 
 #### Update WiFi Credentials
-Edit the ESP32 code (`esp32_power_monitor.ino`):
+Edit the ESP32 code (`esp32_power_monitor/esp32_power_monitor.ino`):
 ```cpp
 const char* WIFI_SSID = "Your_WiFi_SSID";
 const char* WIFI_PASSWORD = "Your_WiFi_Password";
@@ -166,10 +166,13 @@ ip addr show
 
 ### 8. Upload Code to ESP32
 1. Open Arduino IDE or PlatformIO
-2. Select board: ESP32 Dev Module
-3. Select correct COM port
-4. Upload the code
-5. Open Serial Monitor (115200 baud) to verify connection
+2. Install required libraries:
+   - ArduinoJson (via Library Manager)
+   - ModbusMaster (via Library Manager)
+3. Select board: **ESP32 Dev Module**
+4. Select correct COM port
+5. Upload the code
+6. Open Serial Monitor (115200 baud) to verify connection
 
 ## 🔌 Hardware Wiring
 
@@ -218,7 +221,7 @@ The server will start at `http://0.0.0.0:5000`
 2. Login with your credentials
 3. View real-time power monitoring data
 4. Click chart headers for fullscreen view
-5. Use "Download Data List" to export CSV
+5. Use "Download Data List" button to export CSV
 
 ### ESP32 Operation
 Once configured and powered:
@@ -279,21 +282,23 @@ three-phase-power-monitor/
 │   ├── auth.py               # Authentication routes
 │   ├── main.py               # Main routes
 │   ├── api.py                # API endpoints
-│   ├── templates/
-│   │   ├── base.html         # Base template
-│   │   ├── login.html        # Login page
-│   │   ├── register.html     # Registration page
-│   │   └── dashboard.html    # Main dashboard
-│   └── static/               # Static files (if any)
+│   └── templates/
+│       ├── base.html         # Base template
+│       ├── login.html        # Login page
+│       ├── register.html     # Registration page
+│       └── dashboard.html    # Main dashboard
 ├── instance/
 │   └── power_analyzer.db     # SQLite database (auto-created)
 ├── esp32_power_monitor/
 │   └── esp32_power_monitor.ino  # ESP32 Arduino code
+├── docs/
+│   └── images/               # Documentation images
 ├── config.py                 # Flask configuration
 ├── run.py                    # Application entry point
 ├── requirements.txt          # Python dependencies
-├── .env                      # Environment variables
+├── .env                      # Environment variables (create this)
 ├── .gitignore               # Git ignore file
+├── LICENSE                   # MIT License
 └── README.md                # This file
 ```
 
@@ -340,167 +345,334 @@ const unsigned long SEND_INTERVAL = 5000; // milliseconds
 ### Fullscreen Mode
 - Click any chart header to expand
 - Real-time updates continue in fullscreen
-- Press X or ESC to close
+- Click X button or press ESC to close
+- White background for better visibility in fullscreen
 
 ### Data Export
 - Click "Download Data List" button
 - CSV includes all parameters with timestamps
 - File naming: `PowerAnalyzer_YYYY-MM-DDTHH-MM.csv`
+- Compatible with Excel, Google Sheets, and analysis tools
 
 ## 🐛 Troubleshooting
 
 ### ESP32 Can't Connect to WiFi
-- Verify SSID and password are correct
+- Verify SSID and password are correct (case-sensitive)
 - Check WiFi signal strength
 - Ensure 2.4GHz WiFi (ESP32 doesn't support 5GHz)
 - Restart ESP32 and router
+- Check for special characters in WiFi password
 
 ### "Connection Refused" Error
 - Verify Flask server is running: `python run.py`
-- Check PC's IP address hasn't changed
-- Update `FLASK_SERVER_URL` in ESP32 code
+- Check PC's IP address hasn't changed: `ipconfig` (Windows) or `ifconfig` (Mac/Linux)
+- Update `FLASK_SERVER_URL` in ESP32 code with correct IP
 - Disable Windows Firewall temporarily to test
 - Ensure PC and ESP32 are on same network
+- Check if port 5000 is not blocked
 
 ### No Data in Dashboard
-- Check ESP32 Serial Monitor for errors
-- Verify API key matches between ESP32 and `.env`
-- Test API endpoint: `http://YOUR_IP:5000/api/status`
-- Check if user account exists
+- Check ESP32 Serial Monitor for errors (115200 baud)
+- Verify API key matches between ESP32 code and `.env` file
+- Test API endpoint: `http://YOUR_IP:5000/api/status` in browser
+- Check if user account exists and you're logged in
 - Verify Modbus wiring (A to A, B to B)
+- Look for error messages in Flask terminal
 
 ### Modbus Communication Errors
-- Check RS485 wiring (A/B may be swapped)
+- Check RS485 wiring (A/B terminals may be swapped)
 - Verify SDM630 slave address (default is 1)
-- Test with Modbus testing software
-- Check baud rate (default 9600)
+- Test with Modbus testing software (ModbusPoll, QModMaster)
+- Check baud rate setting (default 9600, 8N1)
 - Ensure proper grounding
+- Verify RS485 module has termination resistors if needed
+- Check if power analyzer is properly powered
 
 ### Database Errors
 - Delete `instance/power_analyzer.db` and restart
-- Check file permissions
+- Check file permissions on instance folder
 - Run `flask db upgrade` if using migrations
+- Ensure SQLite is properly installed
 
 ### Charts Not Updating
-- Check browser console for JavaScript errors
-- Clear browser cache
-- Verify data is being received: check Network tab
-- Ensure Flask server is running
+- Check browser console for JavaScript errors (F12)
+- Clear browser cache and reload (Ctrl+F5)
+- Verify data is being received: check Network tab in browser DevTools
+- Ensure Flask server is running without errors
+- Check if Chart.js library is loaded properly
+
+### CSV Download Not Working
+- Check browser download settings
+- Ensure pop-ups are not blocked
+- Verify there is data to download (check dashboard)
+- Try different browser if issue persists
 
 ## 🔒 Security Considerations
 
 ### Production Deployment
+
 1. **Change SECRET_KEY**: Generate a strong random key
 ```python
 import secrets
-secrets.token_hex(32)
+print(secrets.token_hex(32))
 ```
 
-2. **Change API Key**: Use a strong, unique key
+2. **Change API Key**: Use a strong, unique key (minimum 32 characters)
+
 3. **Use HTTPS**: Set up SSL/TLS certificates
+   - Use Let's Encrypt for free certificates
+   - Configure Nginx as reverse proxy
+
 4. **Enable CORS**: Configure allowed origins
+```python
+from flask_cors import CORS
+CORS(app, resources={r"/api/*": {"origins": "https://yourdomain.com"}})
+```
+
 5. **Use Production Database**: PostgreSQL or MySQL
+   - Better performance
+   - Enhanced security features
+   - Backup capabilities
+
 6. **Set DEBUG=False**: In production environment
+```python
+app.config['DEBUG'] = False
+```
+
 7. **Use Gunicorn**: Replace Flask development server
 ```bash
+pip install gunicorn
 gunicorn -w 4 -b 0.0.0.0:5000 run:app
 ```
 
 8. **Add Rate Limiting**: Prevent API abuse
+```python
+from flask_limiter import Limiter
+limiter = Limiter(app, key_func=get_remote_address)
+```
+
 9. **Regular Backups**: Automate database backups
+```bash
+# Cron job for daily backups
+0 2 * * * pg_dump power_analyzer > /backup/db_$(date +\%Y\%m\%d).sql
+```
+
 10. **Update Dependencies**: Keep libraries up to date
+```bash
+pip list --outdated
+pip install --upgrade package_name
+```
 
 ### Network Security
 - Use VPN for remote access
-- Implement firewall rules
+- Implement firewall rules (allow only necessary ports)
 - Disable unused ports
-- Use strong WiFi passwords
+- Use strong WiFi passwords (WPA3 if available)
 - Enable MAC address filtering
+- Separate IoT devices on VLAN if possible
 
 ## 📈 Performance Optimization
 
 ### Database Optimization
+Add indexes for better query performance:
 ```sql
--- Add indexes for better query performance
+-- Create indexes
 CREATE INDEX idx_timestamp ON power_reading(timestamp DESC);
 CREATE INDEX idx_user_id ON power_reading(user_id);
+CREATE INDEX idx_timestamp_user ON power_reading(timestamp DESC, user_id);
 ```
 
 ### Data Cleanup
 Implement automatic data cleanup for old records:
 ```python
-# Add to scheduled task
+# Add to scheduled task (cron or celery)
 from datetime import datetime, timedelta
-cutoff = datetime.now() - timedelta(days=30)
-PowerReading.query.filter(PowerReading.timestamp < cutoff).delete()
-db.session.commit()
+from project.models import PowerReading
+from project import db
+
+def cleanup_old_data(days=30):
+    cutoff = datetime.now() - timedelta(days=days)
+    deleted = PowerReading.query.filter(PowerReading.timestamp < cutoff).delete()
+    db.session.commit()
+    print(f"Deleted {deleted} old records")
 ```
 
 ### Caching
 Consider implementing Redis for caching:
 ```python
 from flask_caching import Cache
-cache = Cache(app, config={'CACHE_TYPE': 'redis'})
+
+cache = Cache(app, config={
+    'CACHE_TYPE': 'redis',
+    'CACHE_REDIS_URL': 'redis://localhost:6379/0'
+})
+
+@cache.cached(timeout=60)
+def get_latest_reading():
+    return PowerReading.query.order_by(PowerReading.timestamp.desc()).first()
 ```
+
+### Frontend Optimization
+- Minimize JavaScript bundle size
+- Use CDN for libraries (Bootstrap, Chart.js)
+- Implement lazy loading for charts
+- Compress images and assets
+- Enable browser caching
 
 ## 🤝 Contributing
 
 Contributions are welcome! Please follow these steps:
 
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/YourFeature`
-3. Commit changes: `git commit -m 'Add YourFeature'`
-4. Push to branch: `git push origin feature/YourFeature`
-5. Open a Pull Request
+1. **Fork the repository**
+2. **Create a feature branch**: 
+   ```bash
+   git checkout -b feature/YourFeature
+   ```
+3. **Commit changes**: 
+   ```bash
+   git commit -m 'Add YourFeature'
+   ```
+4. **Push to branch**: 
+   ```bash
+   git push origin feature/YourFeature
+   ```
+5. **Open a Pull Request**
 
 ### Code Style
 - Follow PEP 8 for Python code
 - Use meaningful variable names
 - Add comments for complex logic
 - Update documentation for new features
+- Write unit tests for new functionality
+- Ensure all tests pass before submitting PR
+
+### Reporting Issues
+When reporting issues, please include:
+- Description of the problem
+- Steps to reproduce
+- Expected behavior
+- Actual behavior
+- System information (OS, Python version, etc.)
+- Error messages and logs
+- Screenshots if applicable
 
 ## 📝 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
+```
+MIT License
+
+Copyright (c) 2024 Uditha Lakshan
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
 ## 👨‍💻 Author
 
-**Your Name**
-- GitHub: [@UdithaLakshan]([https://github.com/UdithaLakshan])
-- LinkedIn: [Your LinkedIn]([https://linkedin.com/in/uditha-lakshan-520411278])
+**Uditha Lakshan**
+- GitHub: [@Udithalakshan](https://github.com/Udithalakshan)
+- LinkedIn: [Uditha Lakshan](https://linkedin.com/in/uditha-lakshan-520411278)
 - Email: lakshankjhu@gmail.com
+- Portfolio: [Coming Soon]
 
 ## 🙏 Acknowledgments
 
-- Flask documentation and community
-- Chart.js for excellent charting library
-- Bootstrap team for responsive framework
-- ESP32 community for hardware support
-- SDM630 Modbus protocol documentation
+- **Flask Community** - For excellent documentation and support
+- **Chart.js Team** - For the powerful charting library
+- **Bootstrap Team** - For responsive framework
+- **ESP32 Community** - For hardware support and examples
+- **Eastron/B+G E-Tech** - For SDM630 Modbus protocol documentation
+- **Open Source Contributors** - For various libraries and tools used in this project
 
 ## 📚 References
 
-- [Flask Documentation](https://flask.palletsprojects.com/)
-- [Chart.js Documentation](https://www.chartjs.org/docs/)
-- [ESP32 Arduino Core](https://github.com/espressif/arduino-esp32)
-- [Modbus Protocol Specification](https://www.modbus.org/)
-- [SDM630 User Manual](https://www.eastroneurope.com/products/view/sdm630modbus)
+### Documentation
+- [Flask Documentation](https://flask.palletsprojects.com/) - Web framework
+- [Chart.js Documentation](https://www.chartjs.org/docs/) - Charting library
+- [ESP32 Arduino Core](https://github.com/espressif/arduino-esp32) - ESP32 development
+- [Modbus Protocol Specification](https://www.modbus.org/) - Industrial protocol
+- [SDM630 User Manual](https://www.eastroneurope.com/products/view/sdm630modbus) - Power analyzer
+
+### Tutorials & Resources
+- [Flask Mega-Tutorial](https://blog.miguelgrinberg.com/post/the-flask-mega-tutorial-part-i-hello-world) - Miguel Grinberg
+- [ESP32 with Modbus](https://randomnerdtutorials.com/esp32-modbus-protocol-arduino-ide/) - Random Nerd Tutorials
+- [SQLAlchemy Tutorial](https://docs.sqlalchemy.org/en/14/tutorial/) - Official SQLAlchemy docs
 
 ## 🔮 Future Enhancements
 
-- [ ] WebSocket support for real-time updates
-- [ ] Email/SMS alerts for abnormal conditions
-- [ ] Historical data analysis and trends
-- [ ] Energy cost calculation
-- [ ] Multi-device support
+### Planned Features
+- [ ] WebSocket support for real-time updates without polling
+- [ ] Email/SMS alerts for abnormal conditions (over-voltage, under-voltage)
+- [ ] Historical data analysis with statistical insights
+- [ ] Energy cost calculation with customizable tariffs
+- [ ] Multi-device support (multiple ESP32 devices)
 - [ ] Mobile app (React Native/Flutter)
-- [ ] Advanced analytics and ML predictions
-- [ ] Export to PDF reports
-- [ ] Integration with Home Assistant
+- [ ] Advanced analytics and ML-based predictions
+- [ ] Export to PDF reports with graphs
+- [ ] Integration with Home Assistant/Node-RED
 - [ ] RESTful API documentation (Swagger/OpenAPI)
+- [ ] Docker containerization
+- [ ] Kubernetes deployment support
+- [ ] GraphQL API support
+- [ ] Real-time notifications via push notifications
+- [ ] Multi-language support (i18n)
+
+### Contributions Needed
+- Testing on different hardware configurations
+- Performance benchmarking
+- Security audit
+- UI/UX improvements
+- Additional chart types (bar, pie charts)
+- Dark mode support
+- Advanced filtering and search capabilities
+
+## 📞 Support
+
+If you encounter any issues or have questions:
+
+1. **Check Documentation**: Review this README and code comments
+2. **Search Existing Issues**: [GitHub Issues](https://github.com/Udithalakshan/three-phase-power-monitor/issues)
+3. **Create New Issue**: Provide detailed description with logs and screenshots
+4. **Discussions**: Join [GitHub Discussions](https://github.com/Udithalakshan/three-phase-power-monitor/discussions)
+5. **Email Support**: lakshankjhu@gmail.com (Response within 48 hours)
+
+### Getting Help
+- Include system information (OS, Python version, ESP32 board type)
+- Attach relevant logs and error messages
+- Describe what you've already tried
+- Screenshots are helpful
+
+## 🌟 Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=Udithalakshan/three-phase-power-monitor&type=Date)](https://star-history.com/#Udithalakshan/three-phase-power-monitor&Date)
 
 ---
 
 **⭐ If you find this project helpful, please give it a star!**
 
-Made with ❤️ for the IoT and Energy Monitoring community
+**💬 Have questions? Open an issue or discussion!**
+
+**🤝 Want to contribute? PRs are welcome!**
+
+Made with ❤️ for the IoT and Energy Monitoring Community
+
+---
+
+*Last Updated: January 2025*
