@@ -1,0 +1,285 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center flex-wrap">
+                <div class="mb-2">
+                    <h1 class="h2"><i class="bi bi-lightning-charge-fill"></i> Power Analyzer Parameters</h1>
+                    <p class="text-muted mb-1">Welcome back, <strong>{{ current_user.username }}</strong>!</p>
+                    <small class="text-muted">
+                        Last updated: <span id="lastUpdate">Never</span> |
+                        <span id="connectionStatus" class="badge bg-secondary">Connecting...</span> |
+                        <span class="badge bg-info">Last 5 minutes</span>
+                    </small>
+                </div>
+                <div class="d-flex gap-2">
+                    <button id="refreshBtn" class="btn btn-primary">
+                        <i class="bi bi-arrow-clockwise"></i> Refresh Data
+                    </button>
+                    <button id="downloadBtn" class="btn btn-success">
+                        <i class="bi bi-file-earmark-arrow-down"></i> Download Data List
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Section -->
+    {% set chart_list = [
+        {'id':'voltageChart','title':'Phase Voltages','labels':['Phase A','Phase B','Phase C'],'colors':['#dc2626','#f59e0b','#2563eb']},
+        {'id':'currentChart','title':'Phase Currents','labels':['Current A','Current B','Current C'],'colors':['#dc2626','#f59e0b','#2563eb']},
+        {'id':'frequencyChart','title':'System Frequency','labels':['Frequency'],'colors':['#10b981']},
+        {'id':'powerFactorChart','title':'Power Factor','labels':['Power Factor'],'colors':['#3b82f6']},
+        {'id':'activePowerChart','title':'Active Power','labels':['Active Power'],'colors':['#f59e0b']},
+        {'id':'apparentPowerChart','title':'Apparent Power','labels':['Apparent Power'],'colors':['#8b5cf6']}
+    ] %}
+
+    <div class="row mb-4">
+        {% for chart in chart_list[0:2] %}
+        <div class="col-lg-6 mb-3">
+            <div class="card shadow-sm chart-card">
+                <div class="card-header bg-light chart-title" data-id="{{ chart.id }}"><i class="bi bi-graph-up"></i> {{ chart.title }}</div>
+                <div class="card-body"><canvas id="{{ chart.id }}" height="200"></canvas></div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="row mb-4">
+        {% for chart in chart_list[2:4] %}
+        <div class="col-lg-6 mb-3">
+            <div class="card shadow-sm chart-card">
+                <div class="card-header bg-light chart-title" data-id="{{ chart.id }}"><i class="bi bi-graph-up"></i> {{ chart.title }}</div>
+                <div class="card-body"><canvas id="{{ chart.id }}" height="200"></canvas></div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="row mb-4">
+        {% for chart in chart_list[4:6] %}
+        <div class="col-lg-6 mb-3">
+            <div class="card shadow-sm chart-card">
+                <div class="card-header bg-light chart-title" data-id="{{ chart.id }}"><i class="bi bi-graph-up"></i> {{ chart.title }}</div>
+                <div class="card-body"><canvas id="{{ chart.id }}" height="200"></canvas></div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Fullscreen Chart Modal -->
+<div id="fullscreenModal" class="fullscreen-modal">
+    <div class="fullscreen-content">
+        <button id="closeFullscreen" class="btn btn-light btn-sm close-btn">
+            <i class="bi bi-x-lg"></i>
+        </button>
+        <canvas id="fullscreenCanvas"></canvas>
+    </div>
+</div>
+
+<style>
+.fullscreen-modal {
+    display: none;
+    position: fixed;
+    z-index: 2000;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #fff; /* White background in fullscreen */
+    justify-content: center;
+    align-items: center;
+}
+.fullscreen-content {
+    position: relative;
+    width: 95%;
+    height: 90%;
+}
+.close-btn {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    z-index: 2100;
+    border-radius: 50%;
+    box-shadow: 0 0 8px rgba(0,0,0,0.3);
+}
+.chart-title {
+    cursor: pointer;
+}
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+let allData = [];
+let lastUpdateTimestamp = null;
+let fullscreenChart = null;
+let activeFullscreenId = null;
+const TIME_WINDOW_MINUTES = 5;
+const chartsRefs = {};
+
+// ------------------- DOM Ready -------------------
+document.addEventListener('DOMContentLoaded', () => {
+    fetchData();
+    setInterval(fetchData, 3000); // live updates
+    setInterval(checkDataFreshness, 5000);
+
+    document.getElementById('refreshBtn').addEventListener('click', handleRefresh);
+    document.getElementById('downloadBtn').addEventListener('click', downloadCSV);
+    document.getElementById('closeFullscreen').addEventListener('click', closeFullscreen);
+
+    // Enable fullscreen on title click
+    document.querySelectorAll('.chart-title').forEach(title => {
+        title.addEventListener('click', () => openFullscreen(title.dataset.id));
+    });
+});
+
+// ------------------- Fullscreen Functions -------------------
+function openFullscreen(chartId) {
+    activeFullscreenId = chartId;
+    document.getElementById('fullscreenModal').style.display = 'flex';
+
+    const ctx = document.getElementById('fullscreenCanvas').getContext('2d');
+    if (fullscreenChart) fullscreenChart.destroy();
+
+    const original = chartsRefs[chartId];
+    fullscreenChart = new Chart(ctx, {
+        type: original.config.type,
+        data: JSON.parse(JSON.stringify(original.data)),
+        options: {
+            ...original.options,
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'top', labels: { color: '#000' } },
+                title: { display: true, text: original.config.data.datasets[0].label, color: '#000' }
+            },
+            scales: {
+                x: { ticks: { color: '#000' }, grid: { color: 'rgba(0,0,0,0.1)' } },
+                y: { ticks: { color: '#000' }, grid: { color: 'rgba(0,0,0,0.1)' } }
+            }
+        }
+    });
+}
+
+function closeFullscreen() {
+    document.getElementById('fullscreenModal').style.display = 'none';
+    if (fullscreenChart) {
+        fullscreenChart.destroy();
+        fullscreenChart = null;
+        activeFullscreenId = null;
+    }
+}
+
+// ------------------- Data Fetching -------------------
+async function handleRefresh() {
+    const btn = document.getElementById('refreshBtn');
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Refreshing...';
+    btn.disabled = true;
+    await fetchData();
+    btn.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Refresh Data';
+    btn.disabled = false;
+}
+
+async function fetchData() {
+    try {
+        const res = await fetch('/api/data', { cache: 'no-cache' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const result = await res.json();
+        allData = filterRecentData(result.data || [], TIME_WINDOW_MINUTES);
+
+        if (allData.length > 0) {
+            lastUpdateTimestamp = new Date(allData[allData.length-1].timestamp);
+            document.getElementById('lastUpdate').textContent = lastUpdateTimestamp.toLocaleTimeString();
+            updateConnectionStatus(true);
+            updateAllCharts();
+        }
+    } catch (err) {
+        console.error(err);
+        updateConnectionStatus(false);
+    }
+}
+
+function filterRecentData(data, minutes) {
+    const cutoff = new Date(new Date().getTime() - minutes*60000);
+    return data.filter(d => new Date(d.timestamp) >= cutoff);
+}
+
+function updateConnectionStatus(ok) {
+    const el = document.getElementById('connectionStatus');
+    el.className = ok ? 'badge bg-success' : 'badge bg-danger';
+    el.innerHTML = ok ? '<i class="bi bi-check-circle-fill"></i> Live' : '<i class="bi bi-x-circle-fill"></i> Disconnected';
+}
+
+function checkDataFreshness() {
+    if (!lastUpdateTimestamp) return;
+    if ((new Date() - lastUpdateTimestamp)/60000 > 5) updateConnectionStatus(false);
+}
+
+// ------------------- Chart Updating -------------------
+function updateAllCharts() {
+    const opts = {responsive:true, maintainAspectRatio:true, animation:{duration:0}, plugins:{legend:{position:'top'}}, scales:{x:{title:{display:true,text:'Time'}}}};
+
+    const chartConfigs = [
+        ['voltageChart',['Phase A','Phase B','Phase C'],['#dc2626','#f59e0b','#2563eb']],
+        ['currentChart',['Current A','Current B','Current C'],['#dc2626','#f59e0b','#2563eb']],
+        ['frequencyChart',['Frequency'],['#10b981']],
+        ['powerFactorChart',['Power Factor'],['#3b82f6']],
+        ['activePowerChart',['Active Power'],['#f59e0b']],
+        ['apparentPowerChart',['Apparent Power'],['#8b5cf6']]
+    ];
+
+    chartConfigs.forEach(c=>{
+        const [id, labels, colors] = c;
+        const dataSets = labels.map(l=>{
+            switch(l){
+                case 'Phase A': return allData.map(d=>d.voltage_a);
+                case 'Phase B': return allData.map(d=>d.voltage_b);
+                case 'Phase C': return allData.map(d=>d.voltage_c);
+                case 'Current A': return allData.map(d=>d.current_a);
+                case 'Current B': return allData.map(d=>d.current_b);
+                case 'Current C': return allData.map(d=>d.current_c);
+                case 'Frequency': return allData.map(d=>d.frequency);
+                case 'Power Factor': return allData.map(d=>d.power_factor);
+                case 'Active Power': return allData.map(d=>d.active_power);
+                case 'Apparent Power': return allData.map(d=>d.apparent_power);
+            }
+        });
+        createOrUpdate(id, labels, dataSets, colors, opts);
+    });
+
+    // Update fullscreen chart in real-time
+    if(fullscreenChart && activeFullscreenId){
+        const fsData = chartsRefs[activeFullscreenId].data;
+        fullscreenChart.data.labels = fsData.labels;
+        fullscreenChart.data.datasets.forEach((ds,i)=>ds.data=fsData.datasets[i].data);
+        fullscreenChart.update('none');
+    }
+}
+
+function createOrUpdate(id, labels, datasets, colors, opts){
+    const ctx = document.getElementById(id)?.getContext('2d');
+    if(!ctx) return;
+    const chartData = {labels:allData.map(d=>new Date(d.timestamp).toLocaleTimeString()), datasets: datasets.map((d,i)=>({label:labels[i],data:d,borderColor:colors[i],backgroundColor:colors[i],borderWidth:2,tension:0.4,pointRadius:2}))};
+    if(ctx._chart){ ctx._chart.data = chartData; ctx._chart.update('none'); }
+    else { ctx._chart = new Chart(ctx,{type:'line',data:chartData,options:opts}); chartsRefs[id] = ctx._chart; }
+}
+
+// ------------------- CSV Download -------------------
+function downloadCSV(){
+    if(!allData.length){ alert('No data to download'); return; }
+    const headers = ['Timestamp','Voltage A','Voltage B','Voltage C','Current A','Current B','Current C','Frequency','Power Factor','Active Power','Apparent Power'];
+    const rows = allData.map(d=>[d.timestamp,d.voltage_a,d.voltage_b,d.voltage_c,d.current_a,d.current_b,d.current_c,d.frequency,d.power_factor,d.active_power,d.apparent_power]);
+    const csv = [headers.join(','), ...rows.map(r=>r.join(','))].join('\n');
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));
+    link.download = `PowerAnalyzer_${new Date().toISOString().slice(0,16).replace(':','-')}.csv`;
+    link.click();
+}
+</script>
+{% endblock %}
