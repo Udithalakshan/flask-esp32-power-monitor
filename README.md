@@ -2,7 +2,7 @@
 
 A complete real-time power monitoring solution that bridges industrial power analyzers with modern web interfaces using ESP32, Flask, and Modbus RTU protocol.
 
-![System Architecture]([docs/images/architecture.png](https://www.linkedin.com/posts/uditha-lakshan-520411278_powermonitoring-energydashboard-realtimeanalytics-activity-7390069767358955521-2VHl?utm_source=share&utm_medium=member_desktop&rcm=ACoAAEOxSqgBC7VCB9X1fRT96mgqiVseo-0vUdU))
+![System Architecture]([https://www.linkedin.com/posts/uditha-lakshan-520411278_powermonitoring-energydashboard-realtimeanalytics-activity-7390069767358955521-2VHl?utm_source=share&utm_medium=member_desktop&rcm=ACoAAEOxSqgBC7VCB9X1fRT96mgqiVseo-0vUdU])
 *Real-time monitoring of three-phase electrical parameters with interactive charts*
 
 ## 🌟 Features
