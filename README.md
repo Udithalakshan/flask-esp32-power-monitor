@@ -466,8 +466,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 👨‍💻 Author
 
 **Your Name**
-- GitHub: [@yourusername]([[https://github.com/yourusername](https://github.com/UdithaLakshan)])
-- LinkedIn: [Your LinkedIn]([https://linkedin.com/in/yourprofile](https://www.linkedin.com/in/uditha-lakshan-520411278))
+- GitHub: [@UdithaLakshan]([https://github.com/UdithaLakshan])
+- LinkedIn: [Your LinkedIn]([https://linkedin.com/in/uditha-lakshan-520411278])
 - Email: lakshankjhu@gmail.com
 
 ## 🙏 Acknowledgments
