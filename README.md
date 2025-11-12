@@ -2,7 +2,7 @@
 
 A complete real-time power monitoring solution that bridges industrial power analyzers with modern web interfaces using ESP32, Flask, and Modbus RTU protocol.
 
-![Dashboard Screenshot](Screenshot 2025-11-12 090550.png)
+![Dashboard Screenshot]([Screenshot 2025-11-12 090550.png])
 *Real-time monitoring of three-phase electrical parameters with interactive charts*
 
 ## 🌟 Features
