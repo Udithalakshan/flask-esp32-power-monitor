@@ -651,26 +651,3 @@ If you encounter any issues or have questions:
 4. **Discussions**: Join [GitHub Discussions](https://github.com/Udithalakshan/three-phase-power-monitor/discussions)
 5. **Email Support**: lakshankjhu@gmail.com (Response within 48 hours)
 
-### Getting Help
-- Include system information (OS, Python version, ESP32 board type)
-- Attach relevant logs and error messages
-- Describe what you've already tried
-- Screenshots are helpful
-
-## 🌟 Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=Udithalakshan/three-phase-power-monitor&type=Date)](https://star-history.com/#Udithalakshan/three-phase-power-monitor&Date)
-
----
-
-**⭐ If you find this project helpful, please give it a star!**
-
-**💬 Have questions? Open an issue or discussion!**
-
-**🤝 Want to contribute? PRs are welcome!**
-
-Made with ❤️ for the IoT and Energy Monitoring Community
-
----
-
-*Last Updated: January 2025*
